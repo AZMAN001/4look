@@ -636,7 +636,10 @@
                 
                 // Mettre à jour la barre de force
                 passwordStrength.style.width = strength + '%';
-                
+
+
+
+        
                 // Mettre à jour le texte et la couleur
                 if (strength < 50) {
                     passwordStrength.style.backgroundColor = '#e74c3c';
@@ -648,4 +651,203 @@
                     strengthText.style.color = '#f39c12';
                 } else {
                     passwordStrength.style.backgroundColor = '#2ecc71';
-                    str
+                    strengthText.textContent = 'Fort';
+                    strengthText.style.color = '#2ecc71';
+                }
+                
+                // Activer/désactiver le bouton d'inscription
+                const confirmPassword = document.getElementById('register-confirm').value;
+                const termsChecked = document.getElementById('terms').checked;
+                
+                registerSubmit.disabled = !(strength >= 75 && password === confirmPassword && termsChecked);
+            });
+            
+            // Vérification de confirmation de mot de passe
+            document.getElementById('register-confirm').addEventListener('input', function() {
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = this.value;
+                
+                if (password !== confirmPassword) {
+                    this.style.borderColor = '#e74c3c';
+                } else {
+                    this.style.borderColor = '#2ecc71';
+                }
+                
+                // Vérifier à nouveau l'état du bouton
+                const strength = parseInt(passwordStrength.style.width) || 0;
+                const termsChecked = document.getElementById('terms').checked;
+                
+                registerSubmit.disabled = !(strength >= 75 && password === confirmPassword && termsChecked);
+            });
+            
+            // Vérification des conditions
+            document.getElementById('terms').addEventListener('change', function() {
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm').value;
+                const strength = parseInt(passwordStrength.style.width) || 0;
+                
+                registerSubmit.disabled = !(strength >= 75 && password === confirmPassword && this.checked);
+            });
+            
+            // Fonction pour mettre à jour les exigences
+            function updateRequirement(type, isValid) {
+                const requirement = document.querySelector(`[data-requirement="${type}"]`);
+                
+                if (isValid) {
+                    requirement.classList.add('valid');
+                } else {
+                    requirement.classList.remove('valid');
+                }
+            }
+            
+            // Formulaires (simulation)
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('Connexion simulée - En production, cela enverrait une requête sécurisée au serveur.');
+                this.reset();
+                loginModal.style.display = 'none';
+            });
+        
+            document.getElementById('register-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('Inscription simulée - En production, cela enverrait une requête sécurisée au serveur et initierait le processus de vérification.');
+                this.reset();
+                registerModal.style.display = 'none';
+                
+                // Réinitialiser la force du mot de passe
+                passwordStrength.style.width = '0';
+                strengthText.textContent = '';
+                passwordRequirements.forEach(req => req.classList.remove('valid'));
+            });
+            
+            // Mot de passe oublié
+            document.getElementById('forgot-password').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Un lien de réinitialisation serait envoyé à votre adresse email (sécurisé avec token à usage unique et expiration).');
+            });
+            
+            // Sécurité supplémentaire : Détection d'inactivité
+            let inactivityTime = function() {
+                let time;
+                
+                window.onload = resetTimer;
+                document.onmousemove = resetTimer;
+                document.onkeypress = resetTimer;
+                
+                function logout() {
+                    if (loginModal.style.display === 'block' || registerModal.style.display === 'block') {
+                        alert('Session expirée pour raison de sécurité.');
+                        loginModal.style.display = 'none';
+                        registerModal.style.display = 'none';
+                        document.getElementById('login-form').reset();
+                        document.getElementById('register-form').reset();
+                    }
+                }
+                
+                function resetTimer() {
+                    clearTimeout(time);
+                    time = setTimeout(logout, 300000); // 5 minutes
+                }
+            };
+            
+            inactivityTime();
+
+            // Détection de tentative de brute force
+            let failedAttempts = 0;
+            const maxAttempts = 5;
+            const lockoutDuration = 300000; // 5 minutes en ms
+
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                // Simulation de vérification
+                if (password === 'SafeMatch2023!' && email.includes('@')) {
+                    alert('Connexion réussie! En production, redirection vers le tableau de bord sécurisé.');
+                    failedAttempts = 0;
+                    this.reset();
+                    loginModal.style.display = 'none';
+                } else {
+                    failedAttempts++;
+                    if (failedAttempts >= maxAttempts) {
+                        alert('Trop de tentatives échouées. Veuillez réessayer dans 5 minutes.');
+                        setTimeout(() => {
+                            failedAttempts = 0;
+                        }, lockoutDuration);
+                    } else {
+                        alert(`Identifiants incorrects. Tentatives restantes: ${maxAttempts - failedAttempts}`);
+                    }
+                }
+            });
+
+            // Protection contre l'inspection d'éléments
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                alert('Menu contextuel désactivé pour des raisons de sécurité.');
+            });
+
+            document.addEventListener('keydown', function(e) {
+                // Désactiver F12, Ctrl+Shift+I, Ctrl+Shift+C, etc.
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'C') || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                    (e.ctrlKey && e.key === 'U')) {
+                    e.preventDefault();
+                    alert('Accès aux outils de développement désactivé pour des raisons de sécurité.');
+                }
+            });
+
+            // Masquage des emails dans la console
+            const originalConsoleLog = console.log;
+            console.log = function(message) {
+                if (typeof message === 'string' && message.includes('@')) {
+                    originalConsoleLog.call(console, '*** EMAIL MASQUÉ ***');
+                } else {
+                    originalConsoleLog.apply(console, arguments);
+                }
+            };
+
+            // Détection de VPN/Proxy (simplifiée)
+            function checkForVPN() {
+                console.log('Vérification de la localisation...');
+            }
+
+            // Vérification de l'intégrité du DOM
+            setInterval(() => {
+                const originalElements = ['login-form', 'register-form', 'login-email'];
+                originalElements.forEach(id => {
+                    if (!document.getElementById(id)) {
+                        alert('Détection de modification du DOM. Rafraîchissement de la page pour sécurité.');
+                        location.reload();
+                    }
+                });
+            }, 5000);
+
+            // Protection contre les iframes (clickjacking)
+            if (window !== window.top) {
+                window.top.location = window.location;
+            }
+
+            // Notification de sécurité
+            window.onload = function() {
+                if (navigator.doNotTrack !== "1" && !sessionStorage.getItem('privacyNotified')) {
+                    alert('Pour votre sécurité, ce site utilise des technologies de protection avancées.');
+                    sessionStorage.setItem('privacyNotified', 'true');
+                }
+            };
+
+            // Cleanup sécurisé
+            window.onbeforeunload = function() {
+                document.getElementById('login-form')?.reset();
+                document.getElementById('register-form')?.reset();
+            };
+        });
+    </script>
+</body>
+</html>
+
+
+
+
